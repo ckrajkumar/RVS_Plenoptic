@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import *
-from tkinter.ttk import *
+# from tkinter.ttk import *
 from PIL import Image, ImageTk
 import cv2
 import numpy as np
@@ -8,8 +8,8 @@ from scipy import signal
 
 frame_cnt = 0
 event_cnt = 0
-PIX_ON_THRESH = 20
-PIX_OFF_THRESH = -20
+# PIX_ON_THRESH = 20
+# PIX_OFF_THRESH = -20
 
 class MainWindow():
     def __init__(self, window, cap):
@@ -40,7 +40,13 @@ class MainWindow():
         # rather than creating each button separately
         for (text, value) in self.values.items():
             Radiobutton(frame, text=text, variable=self.v,
-                        value=value, command = self.update_image).pack(side=TOP, ipadx=5)
+                        value=value, command = self.update_image).pack(side=LEFT, ipadx=10)
+        self.scale_ON = Scale(label="ON Threshold", orient='horizontal', from_=1, to=50)
+        self.scale_ON.set(10)
+        self.scale_ON.pack()
+        self.scale_OFF = Scale(label="OFF Threshold", orient='horizontal', from_=1, to=50)
+        self.scale_OFF.set(10)
+        self.scale_OFF.pack()
         # Update image on canvas
         # self.update_image()
 
@@ -50,11 +56,21 @@ class MainWindow():
         global frame_cnt
         global prev_frame
         global events
+        global PIX_ON_THRESH
+        global PIX_OFF_THRESH
+        PIX_ON_THRESH = self.scale_ON.get()
+        PIX_OFF_THRESH = -self.scale_OFF.get()
         # print(imgType)
         if imgType == "O":
             self.image = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2RGB) # to RGB
+            gray = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2GRAY)
+            if frame_cnt == 0:
+                prev_frame = gray
         elif imgType == "G":
             self.image = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2GRAY)  # to Grayscale
+            gray = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2GRAY)
+            if frame_cnt == 0:
+                prev_frame = gray
         elif imgType == "T":
             gray = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2GRAY)
             if frame_cnt == 0:
@@ -73,13 +89,13 @@ class MainWindow():
             # global prev_frame
             # global events
             if frame_cnt == 0:
-                # prev_frame = gray
+                prev_frame = gray
                 events = np.zeros(np.shape(gray))
             gray_int = gray.astype(np.int)
             spat_diff = (9 / 8) * gray_int - signal.convolve2d(gray_int, np.ones((3, 3)), mode='same') / 8
             events[...] = 128
-            events[spat_diff >= PIX_ON_THRESH/10] = 255
-            events[spat_diff <= PIX_OFF_THRESH/10] = 0
+            events[spat_diff >= PIX_ON_THRESH] = 255
+            events[spat_diff <= PIX_OFF_THRESH] = 0
             self.image = events
             # prev_frame = gray
             frame_cnt += 1
@@ -141,6 +157,9 @@ class MainWindow():
             frame_cnt += 1
         else:
             self.image = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2RGB)  # to RGB
+            gray = cv2.cvtColor(self.cap.read()[1], cv2.COLOR_BGR2GRAY)
+            if frame_cnt == 0:
+                prev_frame = gray
 
         self.image = Image.fromarray(self.image) # to PIL format
         self.image = ImageTk.PhotoImage(self.image) # to ImageTk format
